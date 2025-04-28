@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Crime Rate Detection System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f7f9fa;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 6px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+        input, select, button, textarea {
+            padding: 8px;
+            margin-top: 5px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .output {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Crime Rate Detection System</h1>
+
+    <h3>1. Add / Update Crime Data</h3>
+    <form id="crimeForm">
+        <label>Area Name:</label>
+        <input type="text" id="area" required>
+
+        <label>Number of Police Stations:</label>
+        <input type="number" id="police_count" required>
+
+        <label>Crime Data (JSON Format):</label>
+        <textarea id="crimes" rows="5" placeholder='e.g. {"Theft": 20, "Assault": 5}' required></textarea>
+
+        <button type="submit">Submit Crime Data</button>
+    </form>
+
+    <h3>2. Show Crime Data for Area</h3>
+    <input type="text" id="query_area" placeholder="Enter area name">
+    <button onclick="showAreaDetails()">Show Area Details</button>
+
+    <h3>3. Show Top Crime Area Overall</h3>
+    <button onclick="showTopCrimeArea()">Show Top Area</button>
+
+    <h3>4. Top 5 Areas by Specific Crime</h3>
+    <input type="text" id="crime_type" placeholder="Enter crime type">
+    <button onclick="topAreasByCrime()">Show Top 5</button>
+
+    <div class="output" id="output">
+        <!-- Results will appear here -->
+    </div>
+</div>
+
+<script>
+    const output = document.getElementById("output");
+
+    // These are placeholder functions for now.
+    // In a full version, you'd fetch or post this data to a backend server (e.g. Flask).
+    const crimeDB = {};
+
+    document.getElementById("crimeForm").addEventListener("submit", function(event) {
+        event.preventDefault();
+        const area = document.getElementById("area").value;
+        const policeCount = parseInt(document.getElementById("police_count").value);
+        let crimes;
+        try {
+            crimes = JSON.parse(document.getElementById("crimes").value);
+        } catch {
+            output.innerText = "Invalid JSON format for crimes!";
+            return;
+        }
+
+        if (!crimeDB[area]) {
+            crimeDB[area] = { crimes: {}, police_stations: 0 };
+        }
+        crimeDB[area].crimes = crimes;
+        crimeDB[area].police_stations = policeCount;
+
+        output.innerText = `Crime data updated for ${area}.`;
+    });
+
+    function showAreaDetails() {
+        const area = document.getElementById("query_area").value;
+        const data = crimeDB[area];
+        if (!data) {
+            output.innerText = `No data found for area: ${area}`;
+            return;
+        }
+        let html = `Area: ${area}\nPolice Stations: ${data.police_stations}\nCrimes:\n`;
+        for (let crime in data.crimes) {
+            html += `- ${crime}: ${data.crimes[crime]}\n`;
+        }
+        output.innerText = html;
+    }
+
+    function showTopCrimeArea() {
+        let topArea = null;
+        let maxCrime = -1;
+        for (let area in crimeDB) {
+            const total = Object.values(crimeDB[area].crimes).reduce((a, b) => a + b, 0);
+            if (total > maxCrime) {
+                maxCrime = total;
+                topArea = area;
+            }
+        }
+        if (!topArea) {
+            output.innerText = "No crime data available.";
+            return;
+        }
+        const data = crimeDB[topArea];
+        let html = `Top Crime Area: ${topArea}\nTotal Crime Rate: ${maxCrime}\nPolice Stations: ${data.police_stations}\n`;
+        for (let crime in data.crimes) {
+            html += `- ${crime}: ${data.crimes[crime]}\n`;
+        }
+        output.innerText = html;
+    }
+
+    function topAreasByCrime() {
+        const crimeType = document.getElementById("crime_type").value;
+        const ranked = [];
+        for (let area in crimeDB) {
+            const rate = crimeDB[area].crimes[crimeType];
+            if (rate !== undefined) {
+                ranked.push({ area, rate });
+            }
+        }
+
+        if (ranked.length === 0) {
+            output.innerText = `No areas found with crime: ${crimeType}`;
+            return;
+        }
+
+        ranked.sort((a, b) => b.rate - a.rate);
+        let html = `Top 5 areas for '${crimeType}':\n`;
+        ranked.slice(0, 5).forEach((entry, i) => {
+            html += `${i + 1}. ${entry.area} - ${entry.rate}\n`;
+        });
+        output.innerText = html;
+    }
+</script>
+
+</body>
+</html>
